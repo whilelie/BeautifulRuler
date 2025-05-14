@@ -40,14 +40,24 @@ namespace BeautifulRuler
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
             // 绘制连接线
+            if (!string.IsNullOrEmpty(LabelText))
+            {
+                _lineColor = Color.MediumBlue;
+                _lineWidth = 2;
+            }
+            else
+            {
+                _lineColor = Color.Blue;
+                _lineWidth = 1;
+            }
             using (Pen pen = new Pen(_lineColor, _lineWidth))
             {
                 g.DrawLine(pen, _pointA, _pointB);
             }
 
             // 可选：绘制端点标记
-                DrawPointMarker(g, _pointA);
-                DrawPointMarker(g, _pointB);
+            DrawPointMarker(g, _pointA);
+            DrawPointMarker(g, _pointB);
 
             // 居中绘制标签
             if (!string.IsNullOrEmpty(LabelText))
@@ -59,18 +69,34 @@ namespace BeautifulRuler
                 var drawPoint = new Point(labelPos.X - textSize.Width / 2, labelPos.Y - textSize.Height / 2);
                 TextRenderer.DrawText(g, LabelText, this.Font, drawPoint, Color.Black, TextFormatFlags.Default);
             }
+            //在线段下绘制编号
+            if (!string.IsNullOrEmpty(No))
+            {
+                // 计算线段中点
+                int midX = (_pointA.X + _pointB.X) / 2;
+                int midY = (_pointA.Y + _pointB.Y) / 2;
+
+                // 计算编号位置：在线段中点下方 20 像素（可根据需要调整）
+                int offsetY = 20;
+                var noPos = new Point(midX + LabelOffset.X, midY + LabelOffset.Y + offsetY);
+
+                Size textSize = TextRenderer.MeasureText(No, this.Font);
+                var drawPoint = new Point(noPos.X - textSize.Width / 2, noPos.Y - textSize.Height / 2);
+
+                TextRenderer.DrawText(g, No, this.Font, drawPoint, Color.Black, TextFormatFlags.Default);
+            }
         }
 
         // 绘制圆形端点标记
         private void DrawPointMarker(Graphics g, Point p)
         {
-            int markerSize = 8;
+            int markerSize = 4;
             using (Brush brush = new SolidBrush(Color.Red))
             {
-                g.FillEllipse(brush, 
-                    p.X - markerSize/2, 
-                    p.Y - markerSize/2, 
-                    markerSize, 
+                g.FillEllipse(brush,
+                    p.X - markerSize / 2,
+                    p.Y - markerSize / 2,
+                    markerSize,
                     markerSize);
             }
         }
@@ -137,5 +163,6 @@ namespace BeautifulRuler
 
         public string LabelText { get; set; }
         public Point LabelOffset { get; set; } = new Point(0, -30); // 默认在起点上方
+        public string No { get; set; } 
     }
 }

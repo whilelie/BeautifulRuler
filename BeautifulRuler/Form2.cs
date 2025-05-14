@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Data;
 using System.Drawing;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace BeautifulRuler
     public partial class Form2 : Form
     {
 
-
+        private DatabaseHelper _dbHelper;
 
         private TimeAxis timeAxis;
         //private Button btnPrev;
@@ -24,6 +25,55 @@ namespace BeautifulRuler
         private List<LineElement> linesToDraw = new List<LineElement>();
         private List<ProcessSegment> allSegments = new List<ProcessSegment>();
 
+        // 车间及其下属工序
+        private List<ProcessNode> processHierarchy = new List<ProcessNode>
+        {
+            new ProcessNode
+            {
+                Name = "转炉线",
+                Children = new List<ProcessNode>
+                {
+                    new ProcessNode { Name = "1#转炉" ,BgColor=Color.Chartreuse },
+                    new ProcessNode { Name = "2#转炉" ,BgColor=Color.Chartreuse  },
+                    new ProcessNode { Name = "1#LF精炼" ,BgColor=Color.DarkSeaGreen  },
+                    new ProcessNode { Name = "2#LF精炼" ,BgColor=Color.DarkSeaGreen },
+                    new ProcessNode { Name = "3#LF精炼" ,BgColor=Color.DarkSeaGreen},
+                    new ProcessNode { Name = "4#LF精炼" ,BgColor=Color.DarkSeaGreen},
+                    new ProcessNode { Name = "1#RH精炼",BgColor=Color.ForestGreen },
+                    new ProcessNode { Name = "2#RH精炼",BgColor=Color.ForestGreen },
+                    new ProcessNode { Name = "1#连铸机" ,BgColor=Color.LightGreen},
+                    new ProcessNode { Name = "2#连铸机",BgColor=Color.LightGreen },
+                    new ProcessNode { Name = "3#连铸机" ,BgColor=Color.LightGreen}
+                }
+            },
+            new ProcessNode
+            {
+                Name = "脱磷炉线",
+                Children = new List<ProcessNode>
+                {
+                    new ProcessNode { Name = "3#转炉",BgColor=Color.Chartreuse  },
+                    new ProcessNode { Name = "5#LF精炼",BgColor=Color.DarkSeaGreen },
+                    new ProcessNode { Name = "6#LF精炼",BgColor=Color.DarkSeaGreen },
+                    new ProcessNode { Name = "1#VD精炼" ,BgColor=Color.LightSkyBlue},
+                    new ProcessNode { Name = "2#VD精炼" ,BgColor=Color.LightSkyBlue},
+                    //new ProcessNode { Name = "4#连铸机",BgColor=Color.LightGreen },
+                    new ProcessNode { Name = "5#连铸机" ,BgColor=Color.LightGreen}
+                }
+            },
+            new ProcessNode
+            {
+                Name = "二车间",
+                Children = new List<ProcessNode>
+                {
+                    new ProcessNode { Name = "量子电炉",BgColor=Color.Chartreuse  },
+                    new ProcessNode { Name = "7#LF精炼" ,BgColor=Color.DarkSeaGreen},
+                    new ProcessNode { Name = "8#LF精炼" ,BgColor=Color.DarkSeaGreen},
+                    new ProcessNode { Name = "3#RH精炼" ,BgColor=Color.ForestGreen},
+                    new ProcessNode { Name = "4#RH精炼" ,BgColor=Color.ForestGreen},
+                    new ProcessNode { Name = "6#连铸机" ,BgColor=Color.LightGreen}
+                }
+            }
+        };
         private LineElement currentTimeLineElement;
         public Form2()
         {
@@ -31,21 +81,18 @@ namespace BeautifulRuler
             InitializeTimeAxis();
             //InitializeUI();
 
-            //this.checkedListBoxProcess.CheckOnClick = true;
-            this.checkedListBoxProcess.Items.AddRange(new object[] {
-            "1#转炉",
-            "2#转炉",
-            "3#转炉",
-            "4#转炉",
-            "5#转炉",
-            "6#转炉",
-            "7#转炉",
-            "8#转炉",
-            "9#转炉",
-            //"10#转炉",
-            //"11#转炉",
-            //"12#转炉"
-            });
+            string connectionString = ConfigurationManager.ConnectionStrings["RmesDb"].ConnectionString;
+            _dbHelper = new DatabaseHelper(connectionString);
+
+            checkedListBoxProcess.CheckOnClick = true;
+            checkedListBoxProcess.MultiColumn = false;
+            //checkedListBoxProcess.ColumnWidth = 70; // 可根据实际宽度调整
+            // 只绑定第一级
+            checkedListBoxProcess.Items.Clear();
+            foreach (var node in processHierarchy)
+            {
+                checkedListBoxProcess.Items.Add(node.Name);
+            }
 
             // 默认全选
             for (int i = 0; i < this.checkedListBoxProcess.Items.Count; i++)
@@ -53,21 +100,44 @@ namespace BeautifulRuler
                 this.checkedListBoxProcess.SetItemChecked(i, true);
             }
 
-            allSegments = new List<ProcessSegment>
-            {
-                new ProcessSegment { ProcessName = "1#转炉", StartTime = new DateTime(2025,5,14,6,30,0), EndTime = new DateTime(2025,5,14,7,0,0), Ty = "61905035" },
-                new ProcessSegment { ProcessName = "2#转炉", StartTime = new DateTime(2025,5,14,7,10,0), EndTime = new DateTime(2025,5,14,7,40,0), Ty = "61905035" },
-                new ProcessSegment { ProcessName = "3#转炉", StartTime = new DateTime(2025,5,14,7,50,0), EndTime = new DateTime(2025,5,14,8,20,0), Ty = "61905035" },
-                new ProcessSegment { ProcessName = "4#转炉", StartTime = new DateTime(2025,5,14,8,30,0), EndTime = new DateTime(2025,5,14,9,30,0), Ty = "61905035" },
+            //allSegments = new List<ProcessSegment>
+            //{
+            //    new ProcessSegment { ProcessName = "1#转炉", StartTime = new DateTime(2025,5,14,6,30,0), EndTime = new DateTime(2025,5,14,7,0,0), Ty = "61905035" },
+            //    new ProcessSegment { ProcessName = "2#转炉", StartTime = new DateTime(2025,5,14,7,10,0), EndTime = new DateTime(2025,5,14,7,40,0), Ty = "61905035" },
+            //    new ProcessSegment { ProcessName = "3#转炉", StartTime = new DateTime(2025,5,14,7,50,0), EndTime = new DateTime(2025,5,14,8,20,0), Ty = "61905035" },
+            //    //new ProcessSegment { ProcessName = "4#转炉", StartTime = new DateTime(2025,5,14,8,30,0), EndTime = new DateTime(2025,5,14,9,30,0), Ty = "61905035" },
 
-                new ProcessSegment { ProcessName = "1#转炉", StartTime = new DateTime(2025,5,14,4,30,0), EndTime = new DateTime(2025,5,14,5,0,0), Ty = "61905036" },
-                new ProcessSegment { ProcessName = "4#转炉", StartTime = new DateTime(2025,5,14,6,30,0), EndTime = new DateTime(2025,5,14,7,30,0), Ty = "61905036" },
-                // ... 其他工序段
-            };
-
+            //    //new ProcessSegment { ProcessName = "1#转炉", StartTime = new DateTime(2025,5,14,4,30,0), EndTime = new DateTime(2025,5,14,5,0,0), Ty = "61905036" },
+            //    //new ProcessSegment { ProcessName = "4#转炉", StartTime = new DateTime(2025,5,14,6,30,0), EndTime = new DateTime(2025,5,14,7,30,0), Ty = "61905036" },
+            //    // ... 其他工序段
+            //};
+            LoadDataFromDatabase();
         }
 
+        private void LoadDataFromDatabase()
+        {
+            try
+            {
+                // Get process segments from database
+                allSegments = _dbHelper.GetProcessSegments(txtCode.Text);
 
+                // If we got any data, update the UI
+                if (allSegments.Count > 0)
+                {
+                    DrawProcessLines();
+                }
+                else
+                {
+                    MessageBox.Show("No process data found in the database.", "Information",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading data: {ex.Message}", "Database Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
 
         private void InitializeTimeAxis()
         {
@@ -76,7 +146,7 @@ namespace BeautifulRuler
             {
                 Dock = DockStyle.Top,
                 Height = 50,
-                PixelsPerHour = 120,
+                PixelsPerHour = 360,
                 BackColor = Color.AliceBlue
             };
 
@@ -280,7 +350,7 @@ namespace BeautifulRuler
                 }
             }
         }
-        public void WriteLine(Point start, Point end, string ty)
+        public void WriteLine(Point start, Point end, string ty,string no)
         {
             //if (ty.Length > 1 && ty != null)
             //{
@@ -297,8 +367,8 @@ namespace BeautifulRuler
             // 计算线段的起点和终点相对位置，以确定控件的大小和位置
             int minX = Math.Min(start.X, end.X);
             int minY = Math.Min(start.Y, end.Y);
-            int width = Math.Abs(end.X - start.X) + 10; // 增加一些边距
-            int height = Math.Abs(end.Y - start.Y) + 30; // 增加上方空间给label
+            int width = Math.Abs(end.X - start.X) + 5; // 增加一些边距
+            int height = Math.Abs(end.Y - start.Y) + 50; // 增加上方空间给label
 
             width = Math.Max(width, 1);
             height = Math.Max(height, 1);
@@ -310,6 +380,7 @@ namespace BeautifulRuler
                 _pointA = new Point(start.X - (minX - 5), start.Y - (minY - 25)),
                 _pointB = new Point(end.X - (minX - 5), end.Y - (minY - 25)),
                 LabelText = ty,
+                No = no,
                 LabelOffset = new Point(0, -10) // 可根据需要调整
             };
             lineControl.EnableTransparentBackground();
@@ -378,7 +449,7 @@ namespace BeautifulRuler
         private void BtnSearch_Click(object sender, EventArgs e)
         {
             GenerateProcessLabels();
-            DrawProcessLines();
+            LoadDataFromDatabase();
         }
 
         private void GenerateProcessLabels()
@@ -388,23 +459,33 @@ namespace BeautifulRuler
 
             // 获取选中的工序
             var checkedItems = checkedListBoxProcess.CheckedItems;
-            int labelHeight = 40;
+            int labelHeight = 60;
             int labelWidth = 121;
-            int fontSize = 26;
+            int fontSize = 14;
 
-            for (int i = 0; i < checkedItems.Count; i++)
+            int labelIndex = 0;
+
+            foreach (var checkedItem in checkedItems)
             {
-                var item = checkedItems[i].ToString();
-                var label = new Label
+                // 找到对应的 ProcessNode
+                var node = processHierarchy.FirstOrDefault(n => n.Name == checkedItem.ToString());
+                if (node != null && node.Children != null)
                 {
-                    Text = item,
-                    Size = new Size(labelWidth, labelHeight),
-                    Location = new Point(0, i * labelHeight),
-                    Font = new Font("宋体", fontSize, FontStyle.Regular),
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    BackColor = GetLabelColor(i)
-                };
-                panel5.Controls.Add(label);
+                    foreach (var child in node.Children)
+                    {
+                        var label = new Label
+                        {
+                            Text = child.Name,
+                            Size = new Size(labelWidth, labelHeight),
+                            Location = new Point(0, labelIndex * labelHeight),
+                            Font = new Font("宋体", fontSize, FontStyle.Regular),
+                            TextAlign = ContentAlignment.MiddleCenter,
+                            BackColor = child.BgColor
+                        };
+                        panel5.Controls.Add(label);
+                        labelIndex++;
+                    }
+                }
             }
             // 重新绘制panel5
             panel5.Invalidate();
@@ -416,12 +497,19 @@ namespace BeautifulRuler
             foreach (var line in oldLines)
                 panel5.Controls.Remove(line);
 
-            // 获取选中的工序
-            var selected = checkedListBoxProcess.CheckedItems.Cast<string>().ToList();
+            // 获取选中的第一级工序
+            var selectedTopLevel = checkedListBoxProcess.CheckedItems.Cast<string>().ToList();
+
+            // 获取所有选中一级工序下的所有二级工序名
+            var selectedSecondLevel = processHierarchy
+                .Where(node => selectedTopLevel.Contains(node.Name))
+                .SelectMany(node => node.Children ?? new List<ProcessNode>())
+                .Select(child => child.Name)
+                .ToList();
 
             // 按 Ty 分组
             var grouped = allSegments
-                .Where(seg => selected.Contains(seg.ProcessName))
+                .Where(seg => selectedSecondLevel.Contains(seg.ProcessName))
                 .GroupBy(seg => seg.Ty)
                 .ToList();
 
@@ -437,7 +525,7 @@ namespace BeautifulRuler
                     int y = GetProcessY(seg.ProcessName);
                     float x1 = timeAxis.GetPosition(seg.StartTime);
                     float x2 = timeAxis.GetPosition(seg.EndTime);
-                    WriteLine(new Point((int)x1, y), new Point((int)x2, y), seg.Ty);
+                    WriteLine(new Point((int)x1, y), new Point((int)x2, y), seg.Ty,seg.SteelNo);
 
                     // 画连接线（如果有下一个段）
                     if (i < segs.Count - 1)
@@ -447,7 +535,7 @@ namespace BeautifulRuler
                         float x3 = timeAxis.GetPosition(next.StartTime);
 
                         // 连接线：起点为当前段的结束点，终点为下一个段的起点
-                        WriteLine(new Point((int)x2, y), new Point((int)x3, nextY), "");
+                        WriteLine(new Point((int)x2, y), new Point((int)x3, nextY), "","");
                     }
                 }
             }
@@ -546,6 +634,7 @@ namespace BeautifulRuler
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public string Ty { get; set; }
+        public string SteelNo { get; set; }
     }
 
 }

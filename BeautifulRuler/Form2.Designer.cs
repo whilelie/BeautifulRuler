@@ -30,6 +30,8 @@
         {
             this.panel1 = new System.Windows.Forms.Panel();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.txtCode = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
             this.BtnSearch = new System.Windows.Forms.Button();
             this.checkedListBoxProcess = new System.Windows.Forms.CheckedListBox();
             this.lableProcess = new System.Windows.Forms.Label();
@@ -55,11 +57,13 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1520, 26);
+            this.panel1.Size = new System.Drawing.Size(1135, 26);
             this.panel1.TabIndex = 0;
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.txtCode);
+            this.groupBox1.Controls.Add(this.label5);
             this.groupBox1.Controls.Add(this.BtnSearch);
             this.groupBox1.Controls.Add(this.checkedListBoxProcess);
             this.groupBox1.Controls.Add(this.lableProcess);
@@ -67,14 +71,31 @@
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Top;
             this.groupBox1.Location = new System.Drawing.Point(0, 0);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(1526, 59);
+            this.groupBox1.Size = new System.Drawing.Size(1141, 70);
             this.groupBox1.TabIndex = 1;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "查询条件";
             // 
+            // txtCode
+            // 
+            this.txtCode.Location = new System.Drawing.Point(321, 27);
+            this.txtCode.Name = "txtCode";
+            this.txtCode.Size = new System.Drawing.Size(100, 21);
+            this.txtCode.TabIndex = 7;
+            this.txtCode.Text = "CC125041701";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(278, 27);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(41, 12);
+            this.label5.TabIndex = 6;
+            this.label5.Text = "编号：";
+            // 
             // BtnSearch
             // 
-            this.BtnSearch.Location = new System.Drawing.Point(201, 27);
+            this.BtnSearch.Location = new System.Drawing.Point(456, 27);
             this.BtnSearch.Name = "BtnSearch";
             this.BtnSearch.Size = new System.Drawing.Size(75, 23);
             this.BtnSearch.TabIndex = 5;
@@ -85,9 +106,9 @@
             // checkedListBoxProcess
             // 
             this.checkedListBoxProcess.FormattingEnabled = true;
-            this.checkedListBoxProcess.Location = new System.Drawing.Point(71, 27);
+            this.checkedListBoxProcess.Location = new System.Drawing.Point(61, 11);
             this.checkedListBoxProcess.Name = "checkedListBoxProcess";
-            this.checkedListBoxProcess.Size = new System.Drawing.Size(101, 20);
+            this.checkedListBoxProcess.Size = new System.Drawing.Size(211, 52);
             this.checkedListBoxProcess.TabIndex = 4;
             // 
             // lableProcess
@@ -101,7 +122,7 @@
             // 
             // BtnRefresh
             // 
-            this.BtnRefresh.Location = new System.Drawing.Point(297, 27);
+            this.BtnRefresh.Location = new System.Drawing.Point(532, 27);
             this.BtnRefresh.Name = "BtnRefresh";
             this.BtnRefresh.Size = new System.Drawing.Size(75, 23);
             this.BtnRefresh.TabIndex = 2;
@@ -114,9 +135,9 @@
             this.groupBox2.Controls.Add(this.panel4);
             this.groupBox2.Controls.Add(this.panel3);
             this.groupBox2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox2.Location = new System.Drawing.Point(0, 59);
+            this.groupBox2.Location = new System.Drawing.Point(0, 70);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(1526, 526);
+            this.groupBox2.Size = new System.Drawing.Size(1141, 515);
             this.groupBox2.TabIndex = 2;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "操作";
@@ -127,15 +148,16 @@
             this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel4.Location = new System.Drawing.Point(3, 90);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(1520, 433);
+            this.panel4.Size = new System.Drawing.Size(1135, 422);
             this.panel4.TabIndex = 1;
             // 
             // panel5
             // 
+            this.panel5.AutoScroll = true;
             this.panel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel5.Location = new System.Drawing.Point(0, 0);
             this.panel5.Name = "panel5";
-            this.panel5.Size = new System.Drawing.Size(1520, 433);
+            this.panel5.Size = new System.Drawing.Size(1135, 422);
             this.panel5.TabIndex = 0;
             // 
             // panel3
@@ -145,7 +167,7 @@
             this.panel3.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel3.Location = new System.Drawing.Point(3, 17);
             this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(1520, 73);
+            this.panel3.Size = new System.Drawing.Size(1135, 73);
             this.panel3.TabIndex = 0;
             // 
             // panel2
@@ -154,13 +176,13 @@
             this.panel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel2.Location = new System.Drawing.Point(0, 26);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(1520, 47);
+            this.panel2.Size = new System.Drawing.Size(1135, 47);
             this.panel2.TabIndex = 1;
             // 
             // label4
             // 
             this.label4.BackColor = System.Drawing.Color.LightGreen;
-            this.label4.Font = new System.Drawing.Font("宋体", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.label4.Font = new System.Drawing.Font("SimSun", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.label4.Location = new System.Drawing.Point(0, 120);
             this.label4.Margin = new System.Windows.Forms.Padding(0);
             this.label4.Name = "label4";
@@ -171,7 +193,7 @@
             // label3
             // 
             this.label3.BackColor = System.Drawing.Color.ForestGreen;
-            this.label3.Font = new System.Drawing.Font("宋体", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.label3.Font = new System.Drawing.Font("SimSun", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.label3.Location = new System.Drawing.Point(0, 80);
             this.label3.Margin = new System.Windows.Forms.Padding(0);
             this.label3.Name = "label3";
@@ -182,7 +204,7 @@
             // label2
             // 
             this.label2.BackColor = System.Drawing.Color.DarkSeaGreen;
-            this.label2.Font = new System.Drawing.Font("宋体", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.label2.Font = new System.Drawing.Font("SimSun", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.label2.Location = new System.Drawing.Point(0, 40);
             this.label2.Margin = new System.Windows.Forms.Padding(0);
             this.label2.Name = "label2";
@@ -193,7 +215,7 @@
             // label1
             // 
             this.label1.BackColor = System.Drawing.Color.Chartreuse;
-            this.label1.Font = new System.Drawing.Font("宋体", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.label1.Font = new System.Drawing.Font("SimSun", 26.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.label1.Location = new System.Drawing.Point(0, 0);
             this.label1.Margin = new System.Windows.Forms.Padding(0);
             this.label1.Name = "label1";
@@ -205,7 +227,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1526, 585);
+            this.ClientSize = new System.Drawing.Size(1141, 585);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Name = "Form2";
@@ -238,5 +260,7 @@
         private System.Windows.Forms.CheckedListBox checkedListBoxProcess;
         private System.Windows.Forms.Label lableProcess;
         private System.Windows.Forms.Button BtnSearch;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox txtCode;
     }
 }
