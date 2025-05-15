@@ -17,9 +17,10 @@ namespace BeautifulRuler
         private DatabaseHelper _dbHelper;
 
         private TimeAxis timeAxis;
-        private static DateTime lastVisibleStartTime = DateTime.Today;
+        private DateTime lastVisibleStartTime = DateTime.Today;
         private List<ProcessSegment> allSegments = new List<ProcessSegment>();
-
+        private bool _isScrolling = false;
+        private Timer _scrollEndTimer = new Timer { Interval = 150 };
         // 车间及其下属工序
         private List<ProcessNode> processHierarchy = new List<ProcessNode>
         {
@@ -74,7 +75,6 @@ namespace BeautifulRuler
         {
             InitializeComponent();
             InitializeTimeAxis();
-            //InitializeUI();
 
             string connectionString = ConfigurationManager.ConnectionStrings["RmesDb"].ConnectionString;
             _dbHelper = new DatabaseHelper(connectionString);
@@ -97,7 +97,6 @@ namespace BeautifulRuler
 
             PopulateStoveCodeComboBox();
 
-            LoadDataFromDatabase();
         }
         private void PopulateStoveCodeComboBox()
         {
@@ -218,19 +217,21 @@ namespace BeautifulRuler
         {
             this.Shown += Form2_Shown_SetupLines;
             this.panel5.Paint += Panel5_Paint;
-            GenerateProcessLabels();
 
+            // 启用双缓冲
+            typeof(Panel).InvokeMember("DoubleBuffered",
+                System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                null, panel5, new object[] { true });
+
+            SetupScrollHandlers();
         }
 
         private void Form2_Shown_SetupLines(object sender, EventArgs e)
         {
             this.Shown -= Form2_Shown_SetupLines;
-            // 清空panel5上的所有LineControl
-            var controlsToRemove = panel5.Controls.OfType<LineControl>().ToList();
-            foreach (var ctrl in controlsToRemove)
-                panel5.Controls.Remove(ctrl);
-
-            DrawProcessLines();
+       
+            GenerateProcessLabels();  // 先生成标签
+            LoadDataFromDatabase();   // 加载数据并绘制
 
             // 设置当前时间线
             int x = Convert.ToInt32(timeAxis.GetPosition(DateTime.Now));
@@ -248,8 +249,11 @@ namespace BeautifulRuler
         }
         private void Panel5_Paint(object sender, PaintEventArgs e)
         {
-            //画网格线
-            PaintPanelGrid(e);
+            // 仅在非快速滚动时绘制网格线
+            if (!_isScrolling)
+            {
+                PaintPanelGrid(e);
+            }
 
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
 
@@ -261,11 +265,31 @@ namespace BeautifulRuler
                 }
             }
         }
+        private void SetupScrollHandlers()
+        {
+            _scrollEndTimer.Tick += (s, e) => {
+                _scrollEndTimer.Stop();
+                _isScrolling = false;
+                panel5.Invalidate(); // 滚动停止后重绘一次
+            };
 
+            // 处理滚动事件
+            panel5.Scroll += (s, e) => {
+                if (!_isScrolling)
+                {
+                    _isScrolling = true;
+                }
+                _scrollEndTimer.Stop();
+                _scrollEndTimer.Start(); // 重置计时器
+            };
+        }
         private void PaintPanelGrid(PaintEventArgs e)
         {
             var x1 = 0;
             var x2 = this.panel5.Width;
+
+            // 获取面板的可见区域
+            Rectangle visibleRect = panel5.ClientRectangle;
 
             // 获取当前panel5中所有非一级工序标题的Label（只保留二级工序的Label）
             var processLabels = panel5.Controls.OfType<Label>()
@@ -276,14 +300,22 @@ namespace BeautifulRuler
             // 绘制横线
             using (var pen = new Pen(Color.Black, 1))
             {
-                // 绘制顶部线
-                e.Graphics.DrawLine(pen, x1, 0, x2, 0);
+                // 绘制顶部线（仅当顶部可见时）
+                if (visibleRect.Top <= 0)
+                {
+                    e.Graphics.DrawLine(pen, x1, 0, x2, 0);
+                }
 
-                // 仅在每个二级工序的底部绘制横线
+                // 仅在每个可见的二级工序的底部绘制横线
                 foreach (var label in processLabels)
                 {
                     int y = label.Top + label.Height;
-                    e.Graphics.DrawLine(pen, x1, y, x2, y);
+
+                    // 只绘制可见区域内的线条
+                    if (y >= visibleRect.Top && y <= visibleRect.Bottom)
+                    {
+                        e.Graphics.DrawLine(pen, x1, y, x2, y);
+                    }
                 }
             }
         }
@@ -315,15 +347,11 @@ namespace BeautifulRuler
             {
                 //lineControl.BringToFront();
             }
-            Console.WriteLine($"Add LineControl: {start} -> {end}, ty={ty}");
         }
 
         private void BtnRefresh_Click(object sender, EventArgs e)
         {
             timeAxis.CenterCurrentTime();
-            //int x =Convert.ToInt32(  timeAxis.GetPosition(DateTime.Now));
-
-            //WriteLine(new Point(x, 0), new Point(x, 3000), "测试炉号");
             UpdatePanelControlPositions();
         }
 
