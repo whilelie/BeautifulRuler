@@ -114,7 +114,7 @@ namespace BeautifulRuler
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载编码错误: {ex.Message}", "Error",
+                MessageBox.Show($"加载编码错误: {ex.Message}", "错误",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -130,13 +130,13 @@ namespace BeautifulRuler
                 }
                 else
                 {
-                    MessageBox.Show("无数据", "Information",
+                    MessageBox.Show("无数据", "提示",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载数据错误: {ex.Message}", "Database Error",
+                MessageBox.Show($"加载数据错误: {ex.Message}", "错误",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -247,8 +247,7 @@ namespace BeautifulRuler
                 PointA = new Point(x, 0),
                 PointB = new Point(x, panel5.Height),
                 LineColor = Color.Blue,
-                LineWidth = 2f,
-                IsVerticalTimeMarker = true
+                LineWidth = 2f
             };
 
             panel5.Invalidate();
@@ -326,35 +325,7 @@ namespace BeautifulRuler
                 }
             }
         }
-        public void WriteLine(Point start, Point end, string ty, string no)
-        {
-            // 计算线段的起点和终点相对位置，以确定控件的大小和位置
-            int minX = Math.Min(start.X, end.X);
-            int minY = Math.Min(start.Y, end.Y);
-            int width = Math.Abs(end.X - start.X) + 5; // 增加一些边距
-            int height = Math.Abs(end.Y - start.Y) + 50; // 增加上方空间给label
-
-            width = Math.Max(width, 1);
-            height = Math.Max(height, 1);
-
-            var lineControl = new LineControl
-            {
-                Size = new Size(width, height),
-                Location = new Point(minX - 5, minY - 25), // 上移以给label空间
-                _pointA = new Point(start.X - (minX - 5), start.Y - (minY - 25)),
-                _pointB = new Point(end.X - (minX - 5), end.Y - (minY - 25)),
-                LabelText = ty,
-                No = no,
-                LabelOffset = new Point(0, -10) // 可根据需要调整
-            };
-            lineControl.EnableTransparentBackground();
-            this.panel5.Controls.Add(lineControl);
-            //panel5.Controls.SetChildIndex(lineControl, 0); // 保证线在label下方
-            if (!string.IsNullOrEmpty(ty) || !string.IsNullOrEmpty(no))
-            {
-                //lineControl.BringToFront();
-            }
-        }
+        
 
         private void BtnRefresh_Click(object sender, EventArgs e)
         {

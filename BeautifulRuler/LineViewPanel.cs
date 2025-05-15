@@ -113,7 +113,7 @@ namespace BeautifulRuler
                 LabelText = text,
                 No = no,
                 LineColor = string.IsNullOrEmpty(text) ? Color.Blue : Color.MediumBlue,
-                LineWidth = string.IsNullOrEmpty(text) ? 1 : 2,
+                LineWidth = string.IsNullOrEmpty(text) ? 1 : 3,
                 IsDraggable = !string.IsNullOrEmpty(text)
             };
 
@@ -193,6 +193,11 @@ namespace BeautifulRuler
                     _dragStartX = e.X;
                     Cursor = Cursors.Hand;
 
+                    // 打印拖动开始前的坐标
+                    Console.WriteLine($"拖动开始 - 线条: {line.LabelText ?? "未命名"} (编号: {line.No ?? "无"})");
+                    Console.WriteLine($"起始坐标: ({line.StartPoint.X}, {line.StartPoint.Y})");
+                    Console.WriteLine($"结束坐标: ({line.EndPoint.X}, {line.EndPoint.Y})");
+
                     // 重新查找连接线，确保连接信息是最新的
                     FindConnectedLines(_draggingLine);
                     break;
@@ -226,6 +231,11 @@ namespace BeautifulRuler
         {
             if (_draggingLine != null)
             {
+                // 打印拖动结束后的坐标
+                Console.WriteLine($"拖动结束 - 线条: {_draggingLine.LabelText ?? "未命名"} (编号: {_draggingLine.No ?? "无"})");
+                Console.WriteLine($"起始坐标: ({_draggingLine.StartPoint.X}, {_draggingLine.StartPoint.Y})");
+                Console.WriteLine($"结束坐标: ({_draggingLine.EndPoint.X}, {_draggingLine.EndPoint.Y})");
+
                 _draggingLine = null;
                 Cursor = Cursors.Default;
             }
@@ -360,7 +370,7 @@ namespace BeautifulRuler
         // 绘制端点标记
         private void DrawPointMarker(Graphics g, Point p)
         {
-            int markerSize = 4;
+            int markerSize = 6;
             using (Brush brush = new SolidBrush(Color.Red))
             {
                 g.FillEllipse(brush,
