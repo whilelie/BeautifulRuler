@@ -111,15 +111,38 @@ namespace BeautifulRuler
             //    //new ProcessSegment { ProcessName = "4#转炉", StartTime = new DateTime(2025,5,14,6,30,0), EndTime = new DateTime(2025,5,14,7,30,0), Ty = "61905036" },
             //    // ... 其他工序段
             //};
+
+            PopulateStoveCodeComboBox();
+
             LoadDataFromDatabase();
         }
+        private void PopulateStoveCodeComboBox()
+        {
+            try
+            {
+                List<string> codes = _dbHelper.GetStoveCodes();
 
+                // Add an empty item at the top for "show all" option
+                codes.Insert(0, "");
+
+                cmbCode.DataSource = codes;
+
+                // Select the first item (empty string = show all)
+                if (cmbCode.Items.Count > 0)
+                    cmbCode.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading stove codes: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
         private void LoadDataFromDatabase()
         {
             try
             {
                 // Get process segments from database
-                allSegments = _dbHelper.GetProcessSegments(txtCode.Text);
+                allSegments = _dbHelper.GetProcessSegments(cmbCode.Text);
 
                 // If we got any data, update the UI
                 if (allSegments.Count > 0)
@@ -386,6 +409,10 @@ namespace BeautifulRuler
             lineControl.EnableTransparentBackground();
             this.panel5.Controls.Add(lineControl);
             //panel5.Controls.SetChildIndex(lineControl, 0); // 保证线在label下方
+            if (!string.IsNullOrEmpty(ty) || !string.IsNullOrEmpty(no))
+            {
+                //lineControl.BringToFront();
+            }
             Console.WriteLine($"Add LineControl: {start} -> {end}, ty={ty}");
 
             //Label label = new Label();

@@ -41,6 +41,43 @@ namespace BeautifulRuler
             return dataTable;
         }
 
+        public List<string> GetStoveCodes()
+        {
+            List<string> codes = new List<string>();
+
+            string query = @"SELECT DISTINCT t.C_STOVE_CC FROM TA_PROC t 
+                   WHERE t.C_STEEL_NO != '*' AND t.C_PROC_CODE != 'CC4' 
+                   ORDER BY t.C_STOVE_CC ASC";
+
+            try
+            {
+                using (OracleConnection connection = new OracleConnection(_connectionString))
+                {
+                    connection.Open();
+                    using (OracleCommand command = new OracleCommand(query, connection))
+                    {
+                        using (OracleDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                if (!reader.IsDBNull(0))
+                                {
+                                    codes.Add(reader.GetString(0));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading stove codes: {ex.Message}", "Database Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            return codes;
+        }
+
         public List<ProcessSegment> GetProcessSegments(string code)
         {
             List<ProcessSegment> segments = new List<ProcessSegment>();
@@ -51,6 +88,7 @@ namespace BeautifulRuler
             {
                 query += " AND t.C_STOVE_CC = :code";
             }
+            query += " ORDER BY t.C_STOVE_CC ASC";
             try
             {
                 using (OracleConnection connection = new OracleConnection(_connectionString))
@@ -83,8 +121,8 @@ namespace BeautifulRuler
                                 segments.Add(new ProcessSegment
                                 {
                                     ProcessName = processName,
-                                    StartTime = startTime.AddDays(43),
-                                    EndTime = endTime.AddDays(43),
+                                    StartTime = startTime.AddDays(44),
+                                    EndTime = endTime.AddDays(44),
                                     Ty = reader["C_STOVE_CC"].ToString(),
                                     SteelNo = reader["C_STEEL_NO"].ToString(),
                                 });
