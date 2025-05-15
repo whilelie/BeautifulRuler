@@ -26,6 +26,8 @@ namespace BeautifulRuler
             public bool ConnectedToStart { get; set; } // 是否连接到当前线段的起点
             public bool ConnectedToEnd { get; set; } // 是否连接到当前线段的终点
             public Point OriginalOtherEnd { get; set; } // 连接线另一端的原始坐标（绝对坐标）
+            public bool IsLeftConnection => ConnectedToStart; // 左连接线（连接到起点的线）
+            public bool IsRightConnection => ConnectedToEnd; // 右连接线（连接到终点的线）
         }
 
         public LineControl()
@@ -119,6 +121,8 @@ namespace BeautifulRuler
         private Point _dragStart;
         private Point _controlStart;
         private int _originalY; // 保存原始Y坐标
+        private int _dragMinX; // 拖动最小X坐标限制
+        private int _dragMaxX; // 拖动最大X坐标限制
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
@@ -133,8 +137,9 @@ namespace BeautifulRuler
                 _originalY = this.Location.Y; // 记录开始拖动时的Y坐标
                 Cursor = Cursors.Hand;
 
-                // 查找与此线关联的所有连接线
+                // 查找与此线关联的所有连接线并计算拖动限制
                 FindConnectedLines();
+                CalculateDragLimits();
             }
         }
 
@@ -145,12 +150,19 @@ namespace BeautifulRuler
             {
                 // 计算水平方向的位移
                 int xOffset = e.Location.X - _dragStart.X;
+                int newX = _controlStart.X + xOffset;
+
+                // 应用拖动限制
+                newX = Math.Max(_dragMinX, Math.Min(newX, _dragMaxX));
+
+                // 计算实际移动的偏移量
+                int actualXOffset = newX - _controlStart.X;
 
                 // 只移动X坐标，保持Y坐标不变
-                this.Location = new Point(_controlStart.X + xOffset, _originalY);
+                this.Location = new Point(newX, _originalY);
 
                 // 更新所有关联的连接线
-                UpdateConnectedLines(xOffset);
+                UpdateConnectedLines(actualXOffset);
             }
         }
 
@@ -164,6 +176,43 @@ namespace BeautifulRuler
 
                 // 清除关联的连接线列表
                 _connectedLines.Clear();
+            }
+        }
+
+        // 计算拖动限制
+        private void CalculateDragLimits()
+        {
+            // 获取当前线段绝对坐标
+            Point absPointA = PointToScreen(_pointA);
+            Point absPointB = PointToScreen(_pointB);
+            absPointA = Parent.PointToClient(absPointA);
+            absPointB = Parent.PointToClient(absPointB);
+
+            // 默认无限制
+            _dragMinX = int.MinValue;
+            _dragMaxX = int.MaxValue;
+
+            foreach (var connInfo in _connectedLines)
+            {
+                // 获取连接线绝对坐标
+                Point lineAbsPointA = connInfo.Line.PointToScreen(connInfo.Line._pointA);
+                Point lineAbsPointB = connInfo.Line.PointToScreen(connInfo.Line._pointB);
+                lineAbsPointA = Parent.PointToClient(lineAbsPointA);
+                lineAbsPointB = Parent.PointToClient(lineAbsPointB);
+
+                // 左侧连接线连接到起点A：限制不能向左拖动超过连接线另一端的X坐标
+                if (connInfo.IsLeftConnection)
+                {
+                    int leftLimit = connInfo.OriginalOtherEnd.X - (absPointA.X - this.Left);
+                    _dragMinX = Math.Max(_dragMinX, leftLimit);
+                }
+
+                // 右侧连接线连接到终点B：限制不能向右拖动超过连接线另一端的X坐标
+                if (connInfo.IsRightConnection)
+                {
+                    int rightLimit = connInfo.OriginalOtherEnd.X - (absPointB.X - this.Left);
+                    _dragMaxX = Math.Min(_dragMaxX, rightLimit);
+                }
             }
         }
 
@@ -241,19 +290,23 @@ namespace BeautifulRuler
                     int maxX = Math.Max(newStartPoint.X, newEndPoint.X);
                     int maxY = Math.Max(newStartPoint.Y, newEndPoint.Y);
 
-                    // 计算新的控件大小和位置
-                    int width = maxX - minX + 5;
+                    // 计算新的控件大小和位置，增加更大的边距确保不会消失
+                    int width = maxX - minX + 10;
                     int height = maxY - minY + 50;
-                    width = Math.Max(width, 1);
-                    height = Math.Max(height, 1);
+                    width = Math.Max(width, 5);
+                    height = Math.Max(height, 5);
 
                     // 更新连接线控件
                     line.Location = new Point(minX - 5, minY - 25);
                     line.Size = new Size(width, height);
 
-                    // 更新连接线端点在控件内的相对坐标
-                    line._pointA = new Point(newStartPoint.X - (minX - 5), newStartPoint.Y - (minY - 25));
-                    line._pointB = new Point(newEndPoint.X - (minX - 5), newEndPoint.Y - (minY - 25));
+                    // 确保点坐标非负且在控件边界内
+                    line._pointA = new Point(
+                        Math.Max(0, newStartPoint.X - (minX - 5)),
+                        Math.Max(0, newStartPoint.Y - (minY - 25)));
+                    line._pointB = new Point(
+                        Math.Max(0, newEndPoint.X - (minX - 5)),
+                        Math.Max(0, newEndPoint.Y - (minY - 25)));
                     line.Invalidate();
                 }
                 // 处理连接线的终点连接到当前线段的起点的情况
@@ -269,19 +322,23 @@ namespace BeautifulRuler
                     int maxX = Math.Max(newStartPoint.X, newEndPoint.X);
                     int maxY = Math.Max(newStartPoint.Y, newEndPoint.Y);
 
-                    // 计算新的控件大小和位置
-                    int width = maxX - minX + 5;
+                    // 计算新的控件大小和位置，增加更大的边距确保不会消失
+                    int width = maxX - minX + 10;
                     int height = maxY - minY + 50;
-                    width = Math.Max(width, 1);
-                    height = Math.Max(height, 1);
+                    width = Math.Max(width, 5);
+                    height = Math.Max(height, 5);
 
                     // 更新连接线控件
                     line.Location = new Point(minX - 5, minY - 25);
                     line.Size = new Size(width, height);
 
-                    // 更新连接线端点在控件内的相对坐标
-                    line._pointA = new Point(newStartPoint.X - (minX - 5), newStartPoint.Y - (minY - 25));
-                    line._pointB = new Point(newEndPoint.X - (minX - 5), newEndPoint.Y - (minY - 25));
+                    // 确保点坐标非负且在控件边界内
+                    line._pointA = new Point(
+                        Math.Max(0, newStartPoint.X - (minX - 5)),
+                        Math.Max(0, newStartPoint.Y - (minY - 25)));
+                    line._pointB = new Point(
+                        Math.Max(0, newEndPoint.X - (minX - 5)),
+                        Math.Max(0, newEndPoint.Y - (minY - 25)));
                     line.Invalidate();
                 }
             }
