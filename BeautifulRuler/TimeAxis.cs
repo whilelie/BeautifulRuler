@@ -12,7 +12,7 @@ public class TimeAxis : Panel
     private Color _axisColor = Color.Black;
     private Timer _refreshTimer;
 
-    public int xr_i;
+
     // 公共属性
     public float PixelsPerHour { get; set; } = 50;
     public Color CurrentTimeColor { get; set; } = Color.Red;

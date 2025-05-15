@@ -7,6 +7,6 @@ public class LineElement
     public Color LineColor { get; set; }
     public float LineWidth { get; set; }
     public string LabelText { get; set; }
-    public Point LabelLocation { get; set; } // Relative to PointA or absolute for panel5
+    public Point LabelLocation { get; set; } 
     public bool IsVerticalTimeMarker { get; set; } = false;
 }

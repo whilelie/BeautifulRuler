@@ -35,7 +35,7 @@ namespace BeautifulRuler
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Database error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"执行数据库查询出错: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             return dataTable;
@@ -71,8 +71,7 @@ namespace BeautifulRuler
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading stove codes: {ex.Message}", "Database Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"执行数据库查询出错: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             return codes;
@@ -108,21 +107,22 @@ namespace BeautifulRuler
                                 DateTime startTime;
                                 DateTime endTime;
 
-                                // Parse date strings (adjust format as needed)
                                 if (!DateTime.TryParse(reader["C_DTIME_STA"].ToString(), out startTime))
                                     continue;
 
                                 if (!DateTime.TryParse(reader["C_DTIME_END"].ToString(), out endTime))
                                     continue;
 
-                                // Map process codes to process names (customize based on your needs)
+                                // 计算数据库日期与当前日期的天数差
+                                var dayDiff = (DateTime.Today - new DateTime(2025, 4, 1)).Days;
+
                                 string processName = MapProcessCodeToName(reader["C_PROC_CODE"].ToString());
 
                                 segments.Add(new ProcessSegment
                                 {
                                     ProcessName = processName,
-                                    StartTime = startTime.AddDays(44),
-                                    EndTime = endTime.AddDays(44),
+                                    StartTime = startTime.AddDays(dayDiff),
+                                    EndTime = endTime.AddDays(dayDiff),
                                     Ty = reader["C_STOVE_CC"].ToString(),
                                     SteelNo = reader["C_STEEL_NO"].ToString(),
                                 });
@@ -133,7 +133,7 @@ namespace BeautifulRuler
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading process segments: {ex.Message}", "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"执行数据库查询出错: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             return segments;
@@ -142,7 +142,7 @@ namespace BeautifulRuler
 
         private string MapProcessCodeToName(string procCode)
         {
-    
+
             switch (procCode)
             {
                 case "LD1": return "1#转炉";
@@ -168,7 +168,7 @@ namespace BeautifulRuler
                 //case "CC4": return "4#连铸机";
                 case "CC5": return "5#连铸机";
                 case "CC6": return "6#连铸机";
-                default: return procCode; 
+                default: return procCode;
             }
         }
     }
