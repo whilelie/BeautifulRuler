@@ -8,12 +8,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static BeautifulRuler.LineViewPanel;
 
 namespace BeautifulRuler
 {
     public partial class Form2 : Form
     {
-
+        private LineViewPanel lineViewPanel;
         private DatabaseHelper _dbHelper;
 
         private TimeAxis timeAxis;
@@ -201,14 +202,8 @@ namespace BeautifulRuler
 
             if (pixelDiff != 0)
             {
-                // 更新panel5中所有LineControl的位置
-                foreach (Control ctrl in panel5.Controls)
-                {
-                    if (ctrl is LineControl lineCtrl)
-                    {
-                        lineCtrl.Left += pixelDiff;
-                    }
-                }
+                // 更新LineViewPanel中所有线条的位置
+                lineViewPanel.HorizontalShift(pixelDiff);
             }
             lastVisibleStartTime = currentVisibleStartTime;
             panel5.Invalidate();
@@ -224,6 +219,18 @@ namespace BeautifulRuler
                 null, panel5, new object[] { true });
 
             SetupScrollHandlers();
+
+            // 初始化LineViewPanel并添加到panel5
+            lineViewPanel = new LineViewPanel
+            {
+                // 不使用Dock=Fill，而是设置Location和Size
+                Location = new Point(120, 0),  // 从工序标签右侧开始
+                Size = new Size(panel5.Width - 120, panel5.Height),
+                BackColor = Color.Transparent,
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+            };
+            panel5.Controls.Add(lineViewPanel);
+            lineViewPanel.BringToFront();  // 确保在最上层
         }
 
         private void Form2_Shown_SetupLines(object sender, EventArgs e)
@@ -422,10 +429,8 @@ namespace BeautifulRuler
         }
         private void DrawProcessLines()
         {
-            // 清除旧的LineControl
-            var oldLines = panel5.Controls.OfType<LineControl>().ToList();
-            foreach (var line in oldLines)
-                panel5.Controls.Remove(line);
+            // 清除所有线条
+            lineViewPanel.ClearLines();
 
             // 获取选中的第一级工序
             var selectedTopLevel = checkedListBoxProcess.CheckedItems.Cast<string>().ToList();
@@ -443,19 +448,30 @@ namespace BeautifulRuler
                 .GroupBy(seg => seg.Ty)
                 .ToList();
 
+            // 创建两个列表，分别存储水平线和斜线
+            var horizontalLines = new List<LineInfo>();
+            var diagonalLines = new List<LineInfo>();
+
+            // 首先收集所有需要绘制的线条信息
             foreach (var group in grouped)
             {
                 var segs = group.OrderBy(s => s.StartTime).ToList();
                 if (segs.Count == 0) continue;
 
-                // 顺序：先画第一条线，再画连接线，再画第二条线……
+                // 收集所有线条信息
                 for (int i = 0; i < segs.Count; i++)
                 {
                     var seg = segs[i];
                     int y = GetProcessY(seg.ProcessName);
                     float x1 = timeAxis.GetPosition(seg.StartTime);
                     float x2 = timeAxis.GetPosition(seg.EndTime);
-                    WriteLine(new Point((int)x1, y), new Point((int)x2, y), seg.Ty, seg.SteelNo);
+
+                    // 添加水平工序线
+                    lineViewPanel.AddLine(
+                        new Point((int)x1, y),
+                        new Point((int)x2, y),
+                        seg.Ty,
+                        seg.SteelNo);
 
                     // 画连接线（如果有下一个段）
                     if (i < segs.Count - 1)
@@ -464,8 +480,12 @@ namespace BeautifulRuler
                         int nextY = GetProcessY(next.ProcessName);
                         float x3 = timeAxis.GetPosition(next.StartTime);
 
-                        // 连接线：起点为当前段的结束点，终点为下一个段的起点
-                        WriteLine(new Point((int)x2, y), new Point((int)x3, nextY), "", "");
+                        // 添加斜线（连接线）
+                        lineViewPanel.AddLine(
+                            new Point((int)x2, y),
+                            new Point((int)x3, nextY),
+                            "",
+                            "");
                     }
                 }
             }
@@ -481,6 +501,15 @@ namespace BeautifulRuler
                     return labels[i].Top + labels[i].Height / 2;
             }
             return 0;
+        }
+
+        private void Form2_Resize(object sender, EventArgs e)
+        {
+            if (lineViewPanel != null)
+            {
+                lineViewPanel.Width = panel5.Width - 120;
+                lineViewPanel.Height = panel5.Height;
+            }
         }
     }
 
