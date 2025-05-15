@@ -17,12 +17,7 @@ namespace BeautifulRuler
         private DatabaseHelper _dbHelper;
 
         private TimeAxis timeAxis;
-        //private Button btnPrev;
-        //private Button btnNext;
-        //private TimeAxis timeAxis = new TimeAxis();
-        //private Button btnRefresh;
         private static DateTime lastVisibleStartTime = DateTime.Today;
-        private List<LineElement> linesToDraw = new List<LineElement>();
         private List<ProcessSegment> allSegments = new List<ProcessSegment>();
 
         // 车间及其下属工序
@@ -100,18 +95,6 @@ namespace BeautifulRuler
                 this.checkedListBoxProcess.SetItemChecked(i, true);
             }
 
-            //allSegments = new List<ProcessSegment>
-            //{
-            //    new ProcessSegment { ProcessName = "1#转炉", StartTime = new DateTime(2025,5,14,6,30,0), EndTime = new DateTime(2025,5,14,7,0,0), Ty = "61905035" },
-            //    new ProcessSegment { ProcessName = "2#转炉", StartTime = new DateTime(2025,5,14,7,10,0), EndTime = new DateTime(2025,5,14,7,40,0), Ty = "61905035" },
-            //    new ProcessSegment { ProcessName = "3#转炉", StartTime = new DateTime(2025,5,14,7,50,0), EndTime = new DateTime(2025,5,14,8,20,0), Ty = "61905035" },
-            //    //new ProcessSegment { ProcessName = "4#转炉", StartTime = new DateTime(2025,5,14,8,30,0), EndTime = new DateTime(2025,5,14,9,30,0), Ty = "61905035" },
-
-            //    //new ProcessSegment { ProcessName = "1#转炉", StartTime = new DateTime(2025,5,14,4,30,0), EndTime = new DateTime(2025,5,14,5,0,0), Ty = "61905036" },
-            //    //new ProcessSegment { ProcessName = "4#转炉", StartTime = new DateTime(2025,5,14,6,30,0), EndTime = new DateTime(2025,5,14,7,30,0), Ty = "61905036" },
-            //    // ... 其他工序段
-            //};
-
             PopulateStoveCodeComboBox();
 
             LoadDataFromDatabase();
@@ -122,18 +105,16 @@ namespace BeautifulRuler
             {
                 List<string> codes = _dbHelper.GetStoveCodes();
 
-                // Add an empty item at the top for "show all" option
                 codes.Insert(0, "");
 
                 cmbCode.DataSource = codes;
 
-                // Select the first item (empty string = show all)
                 if (cmbCode.Items.Count > 0)
                     cmbCode.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading stove codes: {ex.Message}", "Error",
+                MessageBox.Show($"加载编码错误: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -141,23 +122,21 @@ namespace BeautifulRuler
         {
             try
             {
-                // Get process segments from database
                 allSegments = _dbHelper.GetProcessSegments(cmbCode.Text);
 
-                // If we got any data, update the UI
                 if (allSegments.Count > 0)
                 {
                     DrawProcessLines();
                 }
                 else
                 {
-                    MessageBox.Show("No process data found in the database.", "Information",
+                    MessageBox.Show("无数据", "Information",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading data: {ex.Message}", "Database Error",
+                MessageBox.Show($"加载数据错误: {ex.Message}", "Database Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -180,55 +159,13 @@ namespace BeautifulRuler
             btnPrev.Click += (s, e) => MoveTimeAxisBackward(); // 每次回退1小时
             btnNext.Click += (s, e) => MoveTimeAxisForward();  // 每次前进1小时
 
-            //var panel = new Panel { Dock = DockStyle.Bottom, Height = 40 };
 
             this.panel2.Controls.Add(timeAxis);
             this.panel1.Controls.Add(btnPrev);
             this.panel1.Controls.Add(btnNext);
-            //Controls.Add(timeAxis);
-            //Controls.Add(panel);
+
         }
-        private void InitializeUI()
-        {
-            // 时间轴控件
-            timeAxis = new TimeAxis
-            {
-                Dock = DockStyle.Top,
-                Height = 150,
-                PixelsPerHour = 80,
-                //AutoCenterCurrentTime = false // 关闭自动居中
-            };
-
-            // 刷新按钮
-            //btnRefresh = new Button
-            //{
-            //    Text = "居中当前时间",
-            //    Dock = DockStyle.Bottom,
-            //    Height = 40
-            //};
-            //btnRefresh.Click += BtnRefresh_Click;
-
-            // 控制按钮容器
-            var controlPanel = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 60,
-                BackColor = SystemColors.Control
-            };
-
-            // 添加其他控制按钮（示例）
-            var btnZoomIn = new Button { Text = "放大", Dock = DockStyle.Left, Width = 80 };
-            var btnZoomOut = new Button { Text = "缩小", Dock = DockStyle.Left, Width = 80 };
-
-            btnZoomIn.Click += (s, e) => timeAxis.PixelsPerHour *= 1.2f;
-            btnZoomOut.Click += (s, e) => timeAxis.PixelsPerHour /= 1.2f;
-
-            //controlPanel.Controls.AddRange(new Control[] { btnZoomIn, btnZoomOut, btnRefresh });
-
-            // 添加控件到窗体
-            Controls.Add(timeAxis);
-            Controls.Add(controlPanel);
-        }
+        
         // 向前移动时间轴（检查是否已经在当天的00:00）
         private void MoveTimeAxisBackward()
         {
@@ -279,8 +216,6 @@ namespace BeautifulRuler
         }
         private void Form2_Load(object sender, EventArgs e)
         {
-            //WriteLine(new Point(130, 30), new Point(230, 30), "11111");
-            //WriteLine(new Point(130, 100), new Point(230, 100), "22222");
             this.Shown += Form2_Shown_SetupLines;
             this.panel5.Paint += Panel5_Paint;
             GenerateProcessLabels();
@@ -289,40 +224,26 @@ namespace BeautifulRuler
 
         private void Form2_Shown_SetupLines(object sender, EventArgs e)
         {
-            try
+            this.Shown -= Form2_Shown_SetupLines;
+            // 清空panel5上的所有LineControl
+            var controlsToRemove = panel5.Controls.OfType<LineControl>().ToList();
+            foreach (var ctrl in controlsToRemove)
+                panel5.Controls.Remove(ctrl);
+
+            DrawProcessLines();
+
+            // 设置当前时间线
+            int x = Convert.ToInt32(timeAxis.GetPosition(DateTime.Now));
+            currentTimeLineElement = new LineElement
             {
-                this.Shown -= Form2_Shown_SetupLines;
-                // 清空panel5上的所有LineControl
-                var controlsToRemove = panel5.Controls.OfType<LineControl>().ToList();
-                foreach (var ctrl in controlsToRemove)
-                    panel5.Controls.Remove(ctrl);
-                DrawProcessLines();
-                // 添加线和标签
-                //WriteLine(new Point(125, 20), new Point(230, 20), "619050325");
-                //WriteLine(new Point(230, 20), new Point(250, 60), "");
-                //WriteLine(new Point(250, 60), new Point(350, 60), "619050325");
-                //WriteLine(new Point(350, 60), new Point(400, 140), "");
-                //WriteLine(new Point(400, 140), new Point(480, 140), "619050325");
+                PointA = new Point(x, 0),
+                PointB = new Point(x, panel5.Height),
+                LineColor = Color.Blue,
+                LineWidth = 2f,
+                IsVerticalTimeMarker = true
+            };
 
-
-                // Setup current time line
-                int x = Convert.ToInt32(timeAxis.GetPosition(DateTime.Now));
-                currentTimeLineElement = new LineElement
-                {
-                    PointA = new Point(x, 0),
-                    PointB = new Point(x, panel5.Height),
-                    LineColor = Color.Blue,
-                    LineWidth = 2f,
-                    IsVerticalTimeMarker = true
-                };
-
-                panel5.Invalidate(); // Trigger Panel5_Paint
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"EXCEPTION in Form2_Shown_SetupLines: {ex.ToString()}");
-                MessageBox.Show($"Error in Form2_Shown_SetupLines: {ex.Message}\n\n{ex.StackTrace}", "Initialization Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            panel5.Invalidate();
             //BtnRefresh_Click(sender, e); // Refresh the panel to update positions
         }
         private void Panel5_Paint(object sender, PaintEventArgs e)
@@ -331,18 +252,6 @@ namespace BeautifulRuler
             PaintPanelGrid(e);
 
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
-
-            //foreach (var lineElement in linesToDraw)
-            //{
-            //    using (Pen pen = new Pen(lineElement.LineColor, lineElement.LineWidth))
-            //    {
-            //        e.Graphics.DrawLine(pen, lineElement.PointA, lineElement.PointB);
-            //    }
-            //    if (!string.IsNullOrEmpty(lineElement.LabelText))
-            //    {
-            //        TextRenderer.DrawText(e.Graphics, lineElement.LabelText, this.Font, lineElement.LabelLocation, Color.Black, TextFormatFlags.Default);
-            //    }
-            //}
 
             if (currentTimeLineElement != null)
             {
@@ -380,18 +289,6 @@ namespace BeautifulRuler
         }
         public void WriteLine(Point start, Point end, string ty, string no)
         {
-            //if (ty.Length > 1 && ty != null)
-            //{
-            //    Label label = new Label();
-            //    label.Text = ty;
-            //    label.Location = new Point(start.X, start.Y - 30); // 设置标签在窗体中的位置
-            //    label.TabIndex = 0;
-            //    label.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;//居中显示
-            //    label.BackColor = Color.Transparent;  // 关键属性
-            //    label.UseCompatibleTextRendering = true;  // 启用GDI+渲染
-            //    this.panel5.Controls.Add(label); // 将标签添加到窗体中
-
-            //}
             // 计算线段的起点和终点相对位置，以确定控件的大小和位置
             int minX = Math.Min(start.X, end.X);
             int minY = Math.Min(start.Y, end.Y);
@@ -419,49 +316,6 @@ namespace BeautifulRuler
                 //lineControl.BringToFront();
             }
             Console.WriteLine($"Add LineControl: {start} -> {end}, ty={ty}");
-
-            //Label label = new Label();
-            //label.Text = "Hello, World!";
-            //label.Location = new Point(start.X, start.Y - 30); // 设置标签在窗体中的位置
-            //label.TabIndex = 0;
-            //label.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;//居中显示
-            //label.BackColor = Color.Transparent;  // 关键属性
-            //label.UseCompatibleTextRendering = true;  // 启用GDI+渲染
-            //this.Controls.Add(label); // 将标签添加到窗体中
-
-            //var lineControl = new LineControl
-            //{
-            //    Dock = DockStyle.Fill,
-            //    _pointA = start,
-            //    _pointB = end
-            //};
-            //Controls.Add(lineControl);
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-
-
-
-            //Point screenCoordinates = button1.PointToScreen(Point.Empty);
-            //Point screenPoint = Control.MousePosition;
-
-
-            Point screenPoint = label1.PointToScreen(Point.Empty);
-
-            //label0000.Text = $"按钮屏幕坐标：X={screenPoint.X}, Y={screenPoint.Y}";
-            //Point screenPoint1 = label11.PointToScreen(Point.Empty);
-            //label0001.Text = $"按钮屏幕坐标：X={screenPoint1.X}, Y={screenPoint1.Y}";
-
-            //WriteLine(new Point(100, 200), new Point(200, 300), "测试炉号");
-
-        }
-
-
-
-        private void Form2_MouseMove(object sender, MouseEventArgs e)
-        {
-
         }
 
         private void BtnRefresh_Click(object sender, EventArgs e)
@@ -473,10 +327,6 @@ namespace BeautifulRuler
             UpdatePanelControlPositions();
         }
 
-        private void btnPrev_Click(object sender, EventArgs e)
-        {
-
-        }
 
         private void BtnSearch_Click(object sender, EventArgs e)
         {
@@ -593,55 +443,7 @@ namespace BeautifulRuler
             }
         }
 
-
-
-        // 可选：自定义不同label的背景色
-        private Color GetLabelColor(int index)
-        {
-            int count = checkedListBoxProcess.Items.Count;
-            // 预设一组基础颜色
-            Color[] baseColors = new Color[]
-            {
-        Color.Chartreuse, Color.DarkSeaGreen, Color.ForestGreen, Color.LightGreen,
-        Color.LightSkyBlue, Color.LightSalmon, Color.Khaki, Color.Plum,
-        Color.LightPink, Color.LightSteelBlue, Color.PaleTurquoise, Color.Orange
-            };
-
-            if (count <= baseColors.Length)
-            {
-                return baseColors[index % baseColors.Length];
-            }
-            else
-            {
-                // 超过基础色数量，自动生成不同色相的颜色
-                // HSL色环均分
-                double hue = (360.0 * index) / count;
-                return FromHsl(hue, 0.5, 0.7);
-            }
-        }
-
-        // HSL转Color的辅助方法
-        private Color FromHsl(double h, double s, double l)
-        {
-            double c = (1 - Math.Abs(2 * l - 1)) * s;
-            double x = c * (1 - Math.Abs((h / 60) % 2 - 1));
-            double m = l - c / 2;
-            double r = 0, g = 0, b = 0;
-
-            if (h < 60) { r = c; g = x; b = 0; }
-            else if (h < 120) { r = x; g = c; b = 0; }
-            else if (h < 180) { r = 0; g = c; b = x; }
-            else if (h < 240) { r = 0; g = x; b = c; }
-            else if (h < 300) { r = x; g = 0; b = c; }
-            else { r = c; g = 0; b = x; }
-
-            int R = (int)((r + m) * 255);
-            int G = (int)((g + m) * 255);
-            int B = (int)((b + m) * 255);
-            return Color.FromArgb(R, G, B);
-        }
-
-        int GetProcessY(string processName)
+        private int GetProcessY(string processName)
         {
             // 找到panel5中对应工序label的Y坐标
             var labels = panel5.Controls.OfType<Label>().ToList();
@@ -652,31 +454,6 @@ namespace BeautifulRuler
             }
             return 0;
         }
-
-        //protected override void OnMouseWheel(MouseEventArgs e)
-        //{
-        //    base.OnMouseWheel(e);
-        //    if (e.Delta > 0) MoveBackward(1);
-        //    else MoveForward(1);
-        //}
-
-        //private void DrawCurrentTimeMarker(Graphics g)
-        //{
-        //    DateTime now = DateTime.Now;
-        //    if (now >= VisibleStartTime && now <= VisibleEndTime)
-        //    {
-        //        float x = GetPosition(now);
-        //        using (Pen markerPen = new Pen(Color.Red, 2))
-        //        {
-        //            g.DrawLine(markerPen, x, 0, x, Height);
-        //        }
-        //    }
-        //}
-
-        //public DateTime GetTimeAtPosition(Point point)
-        //{
-        //    return VisibleStartTime.AddHours(point.X / PixelsPerHour);
-        //}
     }
 
 
