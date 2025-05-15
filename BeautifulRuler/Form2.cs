@@ -284,7 +284,7 @@ namespace BeautifulRuler
             this.Shown += Form2_Shown_SetupLines;
             this.panel5.Paint += Panel5_Paint;
             GenerateProcessLabels();
-         
+
         }
 
         private void Form2_Shown_SetupLines(object sender, EventArgs e)
@@ -358,22 +358,27 @@ namespace BeautifulRuler
             var x1 = 0;
             var x2 = this.panel5.Width;
 
-            // 获取当前panel5中所有Label
-            var labels = panel5.Controls.OfType<Label>().ToList();
-            int labelCount = labels.Count;
-            int labelHeight = labelCount > 0 ? labels[0].Height : 40; // 默认40
+            // 获取当前panel5中所有非一级工序标题的Label（只保留二级工序的Label）
+            var processLabels = panel5.Controls.OfType<Label>()
+                .Where(lbl => !lbl.AutoSize) // 二级工序Label不是AutoSize的，一级工序的标题是AutoSize的
+                .OrderBy(lbl => lbl.Top)
+                .ToList();
 
             // 绘制横线
             using (var pen = new Pen(Color.Black, 1))
             {
-                for (var i = 0; i <= labelCount; i++)
+                // 绘制顶部线
+                e.Graphics.DrawLine(pen, x1, 0, x2, 0);
+
+                // 仅在每个二级工序的底部绘制横线
+                foreach (var label in processLabels)
                 {
-                    var y = labelHeight * i;
+                    int y = label.Top + label.Height;
                     e.Graphics.DrawLine(pen, x1, y, x2, y);
                 }
             }
         }
-        public void WriteLine(Point start, Point end, string ty,string no)
+        public void WriteLine(Point start, Point end, string ty, string no)
         {
             //if (ty.Length > 1 && ty != null)
             //{
@@ -496,8 +501,11 @@ namespace BeautifulRuler
             {
                 // 找到对应的 ProcessNode
                 var node = processHierarchy.FirstOrDefault(n => n.Name == checkedItem.ToString());
-                if (node != null && node.Children != null)
+                if (node != null && node.Children != null && node.Children.Count > 0)
                 {
+                    bool isFirst = true; // 标记是否是该一级工序下的第一个二级工序
+
+                    // 添加该车间下的所有二级工序
                     foreach (var child in node.Children)
                     {
                         var label = new Label
@@ -510,6 +518,23 @@ namespace BeautifulRuler
                             BackColor = child.BgColor
                         };
                         panel5.Controls.Add(label);
+
+                        // 如果是该一级工序下的第一个二级工序，添加一级工序名称标签
+                        if (isFirst)
+                        {
+                            var headerLabel = new Label
+                            {
+                                Text = node.Name,
+                                AutoSize = true,
+                                Location = new Point(2, labelIndex * labelHeight + 2), // 左上角位置，留出小边距
+                                Font = new Font("宋体", fontSize, FontStyle.Bold),
+                                BackColor = child.BgColor
+                            };
+                            panel5.Controls.Add(headerLabel);
+                            headerLabel.BringToFront(); // 确保显示在最上层
+                            isFirst = false;
+                        }
+
                         labelIndex++;
                     }
                 }
@@ -552,7 +577,7 @@ namespace BeautifulRuler
                     int y = GetProcessY(seg.ProcessName);
                     float x1 = timeAxis.GetPosition(seg.StartTime);
                     float x2 = timeAxis.GetPosition(seg.EndTime);
-                    WriteLine(new Point((int)x1, y), new Point((int)x2, y), seg.Ty,seg.SteelNo);
+                    WriteLine(new Point((int)x1, y), new Point((int)x2, y), seg.Ty, seg.SteelNo);
 
                     // 画连接线（如果有下一个段）
                     if (i < segs.Count - 1)
@@ -562,7 +587,7 @@ namespace BeautifulRuler
                         float x3 = timeAxis.GetPosition(next.StartTime);
 
                         // 连接线：起点为当前段的结束点，终点为下一个段的起点
-                        WriteLine(new Point((int)x2, y), new Point((int)x3, nextY), "","");
+                        WriteLine(new Point((int)x2, y), new Point((int)x3, nextY), "", "");
                     }
                 }
             }
