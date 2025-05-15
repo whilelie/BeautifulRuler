@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace BeautifulRuler
 {
@@ -14,10 +16,21 @@ namespace BeautifulRuler
         private Color _lineColor = Color.Blue;
         private int _lineWidth = 2;
 
+        // 存储与此线段关联的连接线
+        private List<ConnectionInfo> _connectedLines = new List<ConnectionInfo>();
+
+        // 存储连接信息的类
+        private class ConnectionInfo
+        {
+            public LineControl Line { get; set; }
+            public bool ConnectedToStart { get; set; } // 是否连接到当前线段的起点
+            public bool ConnectedToEnd { get; set; } // 是否连接到当前线段的终点
+            public Point OriginalOtherEnd { get; set; } // 连接线另一端的原始坐标（绝对坐标）
+        }
+
         public LineControl()
         {
             DoubleBuffered = true; // 启用双缓冲防止闪烁
-            //Size = new Size(300, 200);
         }
 
         // 属性：可以通过属性修改坐标
@@ -69,7 +82,8 @@ namespace BeautifulRuler
                 var drawPoint = new Point(labelPos.X - textSize.Width / 2, labelPos.Y - textSize.Height / 2);
                 TextRenderer.DrawText(g, LabelText, this.Font, drawPoint, Color.Black, TextFormatFlags.Default);
             }
-            //在线段下绘制编号
+
+            // 在线段下绘制编号
             if (!string.IsNullOrEmpty(No))
             {
                 // 计算线段中点
@@ -101,28 +115,26 @@ namespace BeautifulRuler
             }
         }
 
-        // 动态修改坐标示例（可通过鼠标事件触发）
-        //protected override void OnMouseDown(MouseEventArgs e)
-        //{
-        //    base.OnMouseDown(e);
-        //    // 点击时移动第一个点
-        //    //PointA = e.Location;
-        //}
-
         private bool _dragging = false;
         private Point _dragStart;
         private Point _controlStart;
+        private int _originalY; // 保存原始Y坐标
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            // 判断是否点中线段
-            if (IsPointNearLine(e.Location, _pointA, _pointB, 8))
+
+            // 判断是否是非连接线，且在线段附近
+            if (!string.IsNullOrEmpty(LabelText) && IsPointNearLine(e.Location, _pointA, _pointB, 8))
             {
                 _dragging = true;
                 _dragStart = e.Location;
                 _controlStart = this.Location;
+                _originalY = this.Location.Y; // 记录开始拖动时的Y坐标
                 Cursor = Cursors.Hand;
+
+                // 查找与此线关联的所有连接线
+                FindConnectedLines();
             }
         }
 
@@ -131,8 +143,14 @@ namespace BeautifulRuler
             base.OnMouseMove(e);
             if (_dragging)
             {
-                var offset = new Size(e.Location.X - _dragStart.X, e.Location.Y - _dragStart.Y);
-                this.Location = new Point(_controlStart.X + offset.Width, _controlStart.Y + offset.Height);
+                // 计算水平方向的位移
+                int xOffset = e.Location.X - _dragStart.X;
+
+                // 只移动X坐标，保持Y坐标不变
+                this.Location = new Point(_controlStart.X + xOffset, _originalY);
+
+                // 更新所有关联的连接线
+                UpdateConnectedLines(xOffset);
             }
         }
 
@@ -143,8 +161,138 @@ namespace BeautifulRuler
             {
                 _dragging = false;
                 Cursor = Cursors.Default;
+
+                // 清除关联的连接线列表
+                _connectedLines.Clear();
             }
         }
+
+        // 查找与当前线段关联的所有连接线
+        private void FindConnectedLines()
+        {
+            _connectedLines.Clear();
+
+            // 获取父容器中的所有LineControl
+            if (Parent != null)
+            {
+                var allLines = Parent.Controls.OfType<LineControl>().ToList();
+
+                // 获取当前线段两端在容器坐标系中的绝对位置
+                Point absPointA = PointToScreen(_pointA);
+                Point absPointB = PointToScreen(_pointB);
+                absPointA = Parent.PointToClient(absPointA);
+                absPointB = Parent.PointToClient(absPointB);
+
+                // 查找连接到当前线段的连接线（LabelText为空的线）
+                foreach (var line in allLines)
+                {
+                    if (line != this && string.IsNullOrEmpty(line.LabelText))
+                    {
+                        // 获取连接线两端在容器坐标系中的绝对位置
+                        Point lineAbsPointA = line.PointToScreen(line._pointA);
+                        Point lineAbsPointB = line.PointToScreen(line._pointB);
+                        lineAbsPointA = Parent.PointToClient(lineAbsPointA);
+                        lineAbsPointB = Parent.PointToClient(lineAbsPointB);
+
+                        var connectionInfo = new ConnectionInfo { Line = line };
+
+                        // 检查连接线的起点是否连接到当前线段的终点
+                        if (IsPointsClose(lineAbsPointA, absPointB, 10))
+                        {
+                            connectionInfo.ConnectedToEnd = true;
+                            connectionInfo.OriginalOtherEnd = lineAbsPointB;
+                            _connectedLines.Add(connectionInfo);
+                        }
+                        // 检查连接线的终点是否连接到当前线段的起点
+                        else if (IsPointsClose(lineAbsPointB, absPointA, 10))
+                        {
+                            connectionInfo.ConnectedToStart = true;
+                            connectionInfo.OriginalOtherEnd = lineAbsPointA;
+                            _connectedLines.Add(connectionInfo);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 更新与当前线段关联的所有连接线
+        private void UpdateConnectedLines(int xOffset)
+        {
+            foreach (var connInfo in _connectedLines)
+            {
+                var line = connInfo.Line;
+
+                // 获取当前线段移动后的端点绝对位置
+                Point absPointA = PointToScreen(_pointA);
+                Point absPointB = PointToScreen(_pointB);
+                absPointA = Parent.PointToClient(absPointA);
+                absPointB = Parent.PointToClient(absPointB);
+
+                // 处理连接线的起点连接到当前线段的终点的情况
+                if (connInfo.ConnectedToEnd)
+                {
+                    // 计算连接线新的尺寸和位置
+                    Point newStartPoint = absPointB; // 新起点是当前线段的终点
+                    Point newEndPoint = connInfo.OriginalOtherEnd; // 终点保持不变
+
+                    // 创建新线段的最小包围矩形
+                    int minX = Math.Min(newStartPoint.X, newEndPoint.X);
+                    int minY = Math.Min(newStartPoint.Y, newEndPoint.Y);
+                    int maxX = Math.Max(newStartPoint.X, newEndPoint.X);
+                    int maxY = Math.Max(newStartPoint.Y, newEndPoint.Y);
+
+                    // 计算新的控件大小和位置
+                    int width = maxX - minX + 5;
+                    int height = maxY - minY + 50;
+                    width = Math.Max(width, 1);
+                    height = Math.Max(height, 1);
+
+                    // 更新连接线控件
+                    line.Location = new Point(minX - 5, minY - 25);
+                    line.Size = new Size(width, height);
+
+                    // 更新连接线端点在控件内的相对坐标
+                    line._pointA = new Point(newStartPoint.X - (minX - 5), newStartPoint.Y - (minY - 25));
+                    line._pointB = new Point(newEndPoint.X - (minX - 5), newEndPoint.Y - (minY - 25));
+                    line.Invalidate();
+                }
+                // 处理连接线的终点连接到当前线段的起点的情况
+                else if (connInfo.ConnectedToStart)
+                {
+                    // 计算连接线新的尺寸和位置
+                    Point newStartPoint = connInfo.OriginalOtherEnd; // 起点保持不变
+                    Point newEndPoint = absPointA; // 新终点是当前线段的起点
+
+                    // 创建新线段的最小包围矩形
+                    int minX = Math.Min(newStartPoint.X, newEndPoint.X);
+                    int minY = Math.Min(newStartPoint.Y, newEndPoint.Y);
+                    int maxX = Math.Max(newStartPoint.X, newEndPoint.X);
+                    int maxY = Math.Max(newStartPoint.Y, newEndPoint.Y);
+
+                    // 计算新的控件大小和位置
+                    int width = maxX - minX + 5;
+                    int height = maxY - minY + 50;
+                    width = Math.Max(width, 1);
+                    height = Math.Max(height, 1);
+
+                    // 更新连接线控件
+                    line.Location = new Point(minX - 5, minY - 25);
+                    line.Size = new Size(width, height);
+
+                    // 更新连接线端点在控件内的相对坐标
+                    line._pointA = new Point(newStartPoint.X - (minX - 5), newStartPoint.Y - (minY - 25));
+                    line._pointB = new Point(newEndPoint.X - (minX - 5), newEndPoint.Y - (minY - 25));
+                    line.Invalidate();
+                }
+            }
+        }
+
+        // 判断两个点是否接近
+        private bool IsPointsClose(Point p1, Point p2, int tolerance)
+        {
+            return Math.Abs(p1.X - p2.X) <= tolerance && Math.Abs(p1.Y - p2.Y) <= tolerance;
+        }
+
         // 判断点是否在直线附近
         private bool IsPointNearLine(Point p, Point a, Point b, int tolerance)
         {
@@ -160,9 +308,8 @@ namespace BeautifulRuler
             this.BackColor = Color.Transparent;
         }
 
-
         public string LabelText { get; set; }
         public Point LabelOffset { get; set; } = new Point(0, -30); // 默认在起点上方
-        public string No { get; set; } 
+        public string No { get; set; }
     }
 }
